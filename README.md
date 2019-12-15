@@ -10,3 +10,9 @@ Example of usage:
 ➜  15palindrome (master) ~ make
 ➜  15palindrome (master) ~ ./15palindrome ~/primes_list.txt
 ```
+
+```
+➜  15palindrome git:(master) ✗ make all; cat ~/primes_list.txt | ./15palindrome_pipe_10_to_36 | ./15palindrome_pipe_searcher
+Palindrome found Z11AA11N11AA11Z1 at byte 657421207
+Time spend: 7.382601 sec
+```
