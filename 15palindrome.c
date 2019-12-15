@@ -51,6 +51,33 @@ static void strrev(char *str) {
         }
 }
 
+static inline uint8_t __ctoi(char num) {
+        return num - 48;
+}
+
+static size_t fast_strtol(char *src) {
+        char *ptr = src;
+        size_t len;
+        size_t ret = 0;
+        size_t base = 1;
+
+        while (*ptr != '\n' && *ptr != '\0') {
+                ptr++;
+        }
+
+        len = ptr - src;
+
+        for (size_t i = len - 1; i > 0; i--)
+                base *= 10;
+
+        for (size_t i = 0; i < len; i++) {
+                ret += __ctoi(src[i]) * base;
+                base /= 10;
+        }
+
+        return ret;
+}
+
 static void base_10_to_36(char *dest, char *src) {
         static const char jump_table[36] = {
                 '0','1','2','3','4','5','6','7','8','9',
@@ -61,7 +88,7 @@ static void base_10_to_36(char *dest, char *src) {
 
         char *ptr_end = dest;
         size_t remainder;
-        size_t num = strtol(src, NULL, 0);
+        size_t num = fast_strtol(src);
 
         while (num > 36) {
                 remainder = num % 36;
@@ -72,6 +99,9 @@ static void base_10_to_36(char *dest, char *src) {
 
         remainder = num % 36;
         *ptr_end = jump_table[remainder];
+
+        ptr_end++;
+        *ptr_end = '\0';
 
         strrev(dest);
 }
@@ -92,15 +122,15 @@ static int is_palindrome(char *palindrome) {
 
 static int append_and_search(char *palindrome, char *number_hex, size_t *counter) {
         while (*number_hex != '\0') {
-                for (int i = 0; i < BUF_SIZE - 1; i++)
+                for (int i = 0; i < BUF_SIZE - 1; i++) //gcc not like overlaps in memcpy
                         palindrome[i] = palindrome[i+1];
+
                 palindrome[BUF_SIZE - 1] = *number_hex;
-                // printf("%c", number_hex[0]);
                 number_hex++;
                 *counter = *counter + 1;
-                if (is_palindrome(palindrome)) {
+
+                if (is_palindrome(palindrome))
                         return 1;
-                }
         }
 
         return 0;
@@ -110,16 +140,15 @@ int main(int argc, char **argv) {
         char *ptr = NULL;
         char *ptr_end = NULL;
         static char palindrome[BUF_SIZE + 1]; // static +1 for correct printing
-        int success = 0;
+        int ret = 0;
         clock_t begin, end;
-
-        size_t palindrome_offset = 0 - BUF_SIZE + 1;
+        size_t palindrome_offset = 0 - BUF_SIZE + 1; // for correct offset
 
         for (int i = 0; i < BUF_SIZE; i++)
                 palindrome[i] = i;
 
         if (argc < 1) {
-                printf("First arg must be file with prime numbers");
+                fprintf(stderr, "First arg must be file with prime numbers");
                 return 1;
         }
 
@@ -128,33 +157,25 @@ int main(int argc, char **argv) {
 
         begin = clock();
         while (ptr < ptr_end) {
-                static char number_raw[BUF_SIZE];
                 static char number_36[BUF_SIZE];
-                char *ptr_num = number_raw;
+                char *ptr_curr_num = ptr;
 
-                memset(&number_raw, '\0', sizeof(number_raw));
-                memset(&number_36, '\0', sizeof(number_36));
-
-                while (ptr < ptr_end && *ptr != '\n') {
-                        *ptr_num = *ptr;
-                        ptr_num++, ptr++;
-                }
-
-                base_10_to_36(number_36, number_raw);
-                if (append_and_search(palindrome, number_36, &palindrome_offset)) {
+                base_10_to_36(number_36, ptr_curr_num);
+                ret = append_and_search(palindrome, number_36, &palindrome_offset);
+                if (ret) {
                         printf("\n");
                         printf("Palindrome found %s at byte %lu\n", palindrome, palindrome_offset);
-                        success = 1;
                         break;
                 }
 
+                while (ptr < ptr_end && *ptr != '\n')
+                        ptr++;
                 ptr++;
         }
         end = clock();
 
-        if (!success) {
+        if (!ret)
                 printf("Can't find palindrome(%i) in %s\n", TGT_SRCH_SIZE, argv[1]);
-        }
 
         printf("Time spend: %lf sec\n", (double) (end - begin) / CLOCKS_PER_SEC);
 }

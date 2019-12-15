@@ -1,4 +1,4 @@
-15palindrome: main.c
+15palindrome: main.c Makefile
 	gcc -Wall -O3 main.c -o 15palindrome
 
 primes_list.txt:
