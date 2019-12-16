@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <byteswap.h>
 
 #define TGT_SRCH_SIZE 15
 #define BUF_SIZE TGT_SRCH_SIZE
@@ -14,6 +15,21 @@
 static int is_palindrome(char *palindrome) {
         char *ptr_start  = palindrome;
         char *ptr_end = palindrome + TGT_SRCH_SIZE - 1;
+#if TGT_SRCH_SIZE >= 15
+{
+        uint64_t *ptr_start = (uint64_t *) palindrome;
+        uint64_t *ptr_end = (uint64_t *) (palindrome + TGT_SRCH_SIZE - sizeof(uint64_t));
+        if (*ptr_start != bswap_64(*ptr_end))
+                return 0;
+}
+#elif TGT_SRCH_SIZE >= 7
+{
+        uint32_t *ptr_start = (uint32_t *) palindrome;
+        uint32_t *ptr_end = (uint32_t *) (palindrome + TGT_SRCH_SIZE - sizeof(uint32_t));
+        if (*ptr_start != bswap_32(*ptr_end))
+                return 0;
+}
+#endif
 
         while (ptr_start < ptr_end) {
                 if (*ptr_start != *ptr_end)
