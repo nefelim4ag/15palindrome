@@ -9,66 +9,68 @@
 #include <sys/mman.h>
 
 #define TGT_SRCH_SIZE 15
-#define BUF_SIZE TGT_SRCH_SIZE + 1
+#define BUF_SIZE TGT_SRCH_SIZE
 
 static int is_palindrome(char *palindrome) {
-        char *start_ptr = palindrome;
-        char *end_ptr = palindrome + TGT_SRCH_SIZE - 1;
+        char *ptr_start  = palindrome;
+        char *ptr_end = palindrome + TGT_SRCH_SIZE - 1;
 
-        while (start_ptr < end_ptr) {
-                if (*start_ptr != *end_ptr)
+        while (ptr_start < ptr_end) {
+                if (*ptr_start != *ptr_end)
                         return 0;
-                start_ptr++;
-                end_ptr--;
+                ptr_start++;
+                ptr_end--;
         }
 
         return 1;
 }
 
-static int append_and_search(char *palindrome, char *number_hex, size_t *counter) {
-        while (*number_hex != '\0' && *number_hex != '\n' ) {
-                for (int i = 0; i < BUF_SIZE - 1; i++) //gcc not like overlaps in memcpy
-                        palindrome[i] = palindrome[i+1];
+static char *append_and_search(char *palindrome, char *num, size_t *counter) {
+        size_t numlen = strlen(num) - 1; // -1 Ignore new line char
 
-                palindrome[BUF_SIZE - 1] = *number_hex;
-                number_hex++;
+        for (size_t i = 0; i < BUF_SIZE; i++) // Shift array by numlen
+                palindrome[i] = palindrome[i + numlen];
+
+        memcpy(palindrome + BUF_SIZE, num, numlen);
+
+        while(*(palindrome + BUF_SIZE) != '\0') {
                 *counter = *counter + 1;
 
                 if (is_palindrome(palindrome))
-                        return 1;
+                        return palindrome;
+
+                palindrome++;
         }
 
-        return 0;
+        return NULL;
 }
 
 int main(int argc, char **argv) {
-        static char palindrome[BUF_SIZE + 1]; // static +1 for correct printing
-        int success = 0;
+        static char palindrome[BUF_SIZE * 2]; // Extra space for insert whole number
+        char *success = NULL;
         clock_t begin, end;
         size_t palindrome_offset = 0 - BUF_SIZE + 1; // for correct offset
 
-        for (int i = 0; i < BUF_SIZE; i++)
-                palindrome[i] = i;
+        for (int i = 0; i < TGT_SRCH_SIZE; i++)
+                palindrome[i] = 48 + i;
 
         static size_t buf_size = BUF_SIZE;
         static char input_buf[BUF_SIZE];
         static char *ptr = input_buf;
 
-
-
         begin = clock();
-        while (getline(&ptr, &buf_size, stdin) > 0) {
+        while (getline(&ptr, &buf_size, stdin) > 0 && !success) {
                 success = append_and_search(palindrome, input_buf, &palindrome_offset);
-                if (success) {
-                        printf("\n");
-                        printf("Palindrome found %s at byte %lu\n", palindrome, palindrome_offset);
-                        break;
-                }
         }
         end = clock();
 
-        if (!success)
-                printf("Can't find palindrome(%i) in %s\n", TGT_SRCH_SIZE, argv[1]);
+        if (success) {
+                success[TGT_SRCH_SIZE] = '\0';
+                printf("\n");
+                printf("Palindrome found %s at byte %lu\n", success, palindrome_offset);
+        } else {
+                printf("Can't find palindrome(%i) in stdin\n", TGT_SRCH_SIZE);
+        }
 
         printf("Time spend: %lf sec\n", (double) (end - begin) / CLOCKS_PER_SEC);
 }
