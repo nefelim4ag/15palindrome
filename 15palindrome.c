@@ -46,22 +46,6 @@ static int is_palindrome(char *palindrome) {
         char *start_ptr = palindrome;
         char *end_ptr = palindrome + TGT_SRCH_SIZE - 1;
 
-#if TGT_SRCH_SIZE >= 15
-{
-        uint64_t *ptr_start = (uint64_t *) palindrome;
-        uint64_t *ptr_end = (uint64_t *) (palindrome + TGT_SRCH_SIZE - sizeof(uint64_t));
-        if (*ptr_start != bswap_64(*ptr_end))
-                return 0;
-}
-#elif TGT_SRCH_SIZE >= 7
-{
-        uint32_t *ptr_start = (uint32_t *) palindrome;
-        uint32_t *ptr_end = (uint32_t *) (palindrome + TGT_SRCH_SIZE - sizeof(uint32_t));
-        if (*ptr_start != bswap_32(*ptr_end))
-                return 0;
-}
-#endif
-
         while (start_ptr < end_ptr) {
                 if (*start_ptr != *end_ptr)
                         return 0;
