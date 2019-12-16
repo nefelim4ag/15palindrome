@@ -69,6 +69,11 @@ static void base_10_to_36(char *dest, char *src) {
         remainder = num % 36;
         *ptr_end = jump_table[remainder];
 
+        if (num == 36) {
+                ptr_end++;
+                *ptr_end = jump_table[num / 36];
+        }
+
         ptr_end++;
         *ptr_end = '\0';
 
@@ -81,9 +86,7 @@ int main(int argc, char **argv) {
         static char output_buf[BUF_SIZE];
         static char *ptr = input_buf;
 
-        int ret = 1;
-        while (ret > 0) {
-                ret = getline(&ptr, &buf_size, stdin);
+        while (getline(&ptr, &buf_size, stdin) > 0) {
                 base_10_to_36(output_buf, input_buf);
                 printf("%s\n", output_buf);
         }

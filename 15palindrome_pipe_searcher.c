@@ -43,7 +43,6 @@ static int append_and_search(char *palindrome, char *number_hex, size_t *counter
 
 int main(int argc, char **argv) {
         static char palindrome[BUF_SIZE + 1]; // static +1 for correct printing
-        int ret = 1;
         int success = 0;
         clock_t begin, end;
         size_t palindrome_offset = 0 - BUF_SIZE + 1; // for correct offset
@@ -58,9 +57,7 @@ int main(int argc, char **argv) {
 
 
         begin = clock();
-        while (ret > 0) {
-                getline(&ptr, &buf_size, stdin);
-
+        while (getline(&ptr, &buf_size, stdin) > 0) {
                 success = append_and_search(palindrome, input_buf, &palindrome_offset);
                 if (success) {
                         printf("\n");

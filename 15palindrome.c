@@ -100,6 +100,11 @@ static void base_10_to_36(char *dest, char *src) {
         remainder = num % 36;
         *ptr_end = jump_table[remainder];
 
+        if (num == 36) {
+                ptr_end++;
+                *ptr_end = jump_table[num / 36];
+        }
+
         ptr_end++;
         *ptr_end = '\0';
 
