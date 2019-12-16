@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "strdlen.h"
+
 static void strrev(char *str) {
         char *p1, *p2;
 
         if (! str || ! *str)
                 return;
-        for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2) {
+        for (p1 = str, p2 = str + strdlen(str) - 1; p2 > p1; ++p1, --p2) {
                 *p1 ^= *p2;
                 *p2 ^= *p1;
                 *p1 ^= *p2;

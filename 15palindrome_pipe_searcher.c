@@ -9,6 +9,8 @@
 #include <sys/mman.h>
 #include <byteswap.h>
 
+#include "strdlen.h"
+
 #define TGT_SRCH_SIZE 15
 #define BUF_SIZE TGT_SRCH_SIZE
 
@@ -39,12 +41,6 @@ static int is_palindrome(char *palindrome) {
         }
 
         return 1;
-}
-
-size_t strdlen(char *a) {
-        char *s;
-        for (s = a; *s != '\n' && *s != '\0'; s++);
-        return s - a;
 }
 
 static char *append_and_search(char *palindrome, char *num, size_t *counter) {
