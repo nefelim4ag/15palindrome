@@ -1,5 +1,7 @@
 #!/usr/bin/env pyton3
 
+# 15 palindrom search in ASCII input
+# Optimized single-thread implementation 
 
 import sys, os
 
@@ -17,12 +19,11 @@ def find_15_p(data, offset):
         start_i += 1
     return None, None
 
-read_buffer_size = 1024 * 1024
+read_buffer_size = 1024 * 64
 
 _s = bytes()
 _input_offset = 0
 while True:
-    #data = sys.stdin.buffer.read(read_buffer_size)
     data = os.read(0, read_buffer_size)
     if len(data) == 0:
         break

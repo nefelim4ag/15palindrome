@@ -1,7 +1,9 @@
 #!/usr/bin/env pyton3
 
+# 15 palindrom search in ASCII input
+# Multithreaded implementation
 
-import sys
+import sys, os
 import threading
 import queue
 
@@ -52,7 +54,7 @@ for ii in range(num_threads):
 _s = bytes()
 _input_offset = 0
 while result is None:
-    data = sys.stdin.buffer.read(1024 * 1024 * 16)
+    data = os.read(0, 64 * 1024)
     if len(data) == 0:
         break
 

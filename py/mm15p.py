@@ -1,5 +1,9 @@
 #!/usr/bin/env pyton3
 
+# 15 palindrom search in ASCII file
+# Mmap + multiprocess implementation
+
+
 import sys, os
 from multiprocessing import Pool
 import mmap
