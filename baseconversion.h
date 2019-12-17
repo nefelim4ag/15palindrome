@@ -52,25 +52,15 @@ static const char jump_table[36] = {
 
 void base_10_to_36(char *dest, char *src) {
         char *ptr_end = dest;
-        size_t remainder;
         size_t num = fast_strtol(src);
 
-        while (num > 36) {
-                remainder = num % 36;
+        while (num != 0) {
+                int remainder = num % 36;
                 *ptr_end = jump_table[remainder];
                 ptr_end++;
                 num = num / 36;
         }
 
-        remainder = num % 36;
-        *ptr_end = jump_table[remainder];
-
-        if (num == 36) {
-                ptr_end++;
-                *ptr_end = '1';
-        }
-
-        ptr_end++;
         *ptr_end = '\0';
 
         strrev(dest);
