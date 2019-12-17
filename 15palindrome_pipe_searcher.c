@@ -9,71 +9,59 @@
 #include <sys/mman.h>
 #include <byteswap.h>
 
-#include "strdlen.h"
-#include "stdin.h"
-
 #define TGT_SRCH_SIZE 15
 #define BUF_SIZE TGT_SRCH_SIZE
 
-static int is_palindrome(char *palindrome) {
-        char *ptr_start  = palindrome;
-        char *ptr_end = palindrome + TGT_SRCH_SIZE - 1;
+static inline int is_palindrome(char *palindrome, size_t offset) {
+        for (int i = 0; i < TGT_SRCH_SIZE / 2; i++) {
+                size_t last_byte = (offset - i) % TGT_SRCH_SIZE;
+                size_t first_byte = (offset + i + 1) % TGT_SRCH_SIZE;
 
-        while (ptr_start < ptr_end) {
-                if (*ptr_start != *ptr_end)
+                if (palindrome[last_byte] != palindrome[first_byte])
                         return 0;
-                ptr_start++;
-                ptr_end--;
         }
 
         return 1;
 }
 
-static char *append_and_search(char *palindrome, char *num, size_t *counter) {
-        size_t numlen = strdlen(num);
-
-        for (size_t i = 0; i < BUF_SIZE; i++) // Shift array by numlen
-                palindrome[i] = palindrome[i + numlen];
-
-        memcpy(palindrome + BUF_SIZE, num, numlen);
-
-        while(*(palindrome + BUF_SIZE) != '\0') {
-                *counter = *counter + 1;
-
-                if (is_palindrome(palindrome))
-                        return palindrome;
-
-                palindrome++;
-        }
-
-        return NULL;
-}
-
 int main(int argc, char **argv) {
-        static char palindrome[BUF_SIZE * 2]; // Extra space for insert whole number
-        char *success = NULL;
+        static char rbuffer[64];
+        static char palindrome[BUF_SIZE];
+        static size_t palindrome_offset = 0;
         clock_t begin, end;
-        size_t palindrome_offset = 0 - BUF_SIZE + 1; // for correct offset
+        int found = 0;
 
-        for (int i = 0; i < TGT_SRCH_SIZE; i++)
-                palindrome[i] = 48 + i;
-
+        FILE *fd = freopen(NULL, "rb", stdin);
 
         begin = clock();
-        while (!success) {
-                char *ptr = get_stdin_line();
-                if (ptr == NULL)
+        while (!found) {
+                if (fread(&rbuffer, sizeof(rbuffer), 1, fd) < 0)
                         break;
-                //fix_string(ptr);
-                // printf("%s\n", ptr);
-                success = append_and_search(palindrome, ptr, &palindrome_offset);
+
+                for (int a = 0; a < sizeof(rbuffer); a++) {
+                        if (rbuffer[a] == '\n')
+                                continue;
+
+                        palindrome[palindrome_offset % TGT_SRCH_SIZE] = rbuffer[a];
+
+                        if (is_palindrome(palindrome, palindrome_offset)) {
+                                found = 1;
+                                break;
+                        }
+                        palindrome_offset++;
+                }
         }
         end = clock();
 
-        if (success) {
-                success[TGT_SRCH_SIZE] = '\0';
+
+
+        if (is_palindrome(palindrome, palindrome_offset)) {
                 printf("\n");
-                printf("Palindrome found %s at byte %lu\n", success, palindrome_offset);
+                printf("Palindrome found ");
+                for (size_t i = 0; i < TGT_SRCH_SIZE; i++) {
+                        printf("%c", palindrome[(palindrome_offset + i + 1) % TGT_SRCH_SIZE]);
+                }
+                printf( " at byte %lu\n", palindrome_offset);
         } else {
                 fprintf(stderr, "Can't find palindrome(%i) in stdin\n", TGT_SRCH_SIZE);
         }
