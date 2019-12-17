@@ -1,21 +1,27 @@
 #!/usr/bin/env pyton3
 
-
-import primesieve
+import os
 import numpy as np
+from primesieve.numpy import *
 
 
+a = primes(5*1000*1000*1000)
 
-it = primesieve.Iterator()
-prime = it.next_prime()
 
-_s = ''
-_global_offset = 0
+base36_table = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-while prime < 2500000000:
-    prime36 = np.base_repr(prime, 36)
-    print(prime36)
-    prime = it.next_prime()
+def base36_encode_bytes(number):
+    global base36_table
+    base36 = b''
+
+    while number:
+        number, i = divmod(number, 36)
+        base36 = bytes([base36_table[i]]) + base36
+
+    return base36 or b'0'
+
+for v in a:
+    os.write(1, base36_encode_bytes(v))
 
 
 

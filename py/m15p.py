@@ -1,5 +1,7 @@
 #!/usr/bin/env pyton3
 
+# 15 palindrom search in ASCII input
+# Multiprocess implementation
 
 import sys, os
 from multiprocessing import Pool
@@ -25,8 +27,7 @@ results = []
 _s = bytes()
 _input_offset = 0
 while True:
-    #data = sys.stdin.buffer.read(4096 * 1024)
-    data = os.read(0, 4096 * 1024)
+    data = os.read(0, 64 * 1024)
     if len(data) == 0:
         break
 
