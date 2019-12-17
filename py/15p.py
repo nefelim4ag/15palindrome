@@ -1,9 +1,7 @@
 #!/usr/bin/env pyton3
 
 
-import sys
-import threading
-import queue
+import sys, os
 
 def find_15_p(data, offset):
     start_i = 0
@@ -19,64 +17,26 @@ def find_15_p(data, offset):
         start_i += 1
     return None, None
 
-Q = queue.Queue()
-result = None
-
-def thread_routine():
-    global result
-    while True:
-        p = Q.get()
-        Q.task_done()
-        if p is None:
-            break
-        data, offset = p
-        #print(len(data), offset)
-        start_off, substr = find_15_p(data, offset)
-        if start_off is not None:
-            result = (start_off, substr)
-            break
-    #print('thread exit')
-
-
-threads = []
-num_threads = 8
-
-for ii in range(num_threads):
-    #print('start thread', ii)
-    t = threading.Thread(target=thread_routine)
-    t.start()
-    threads.append(t)
-
-
+read_buffer_size = 1024 * 1024
 
 _s = bytes()
 _input_offset = 0
-while result is None:
-    data = sys.stdin.buffer.read(4096 * 1024)
+while True:
+    #data = sys.stdin.buffer.read(read_buffer_size)
+    data = os.read(0, read_buffer_size)
     if len(data) == 0:
         break
 
-    Q.put((_s + data, _input_offset))
-    #start_off, substr = find_15_p(_s + data, _input_offset)
-    #if start_off is not None:
-    #    print('SUCCESS\n', start_off, substr)
-    #    quit(0)
+    start_off, substr = find_15_p(_s + data, _input_offset)
+    if start_off is not None:
+        print('SUCCESS\n', start_off, substr)
+        quit(0)
 
     _input_offset += len(_s) + len(data) - 14
     _s = data[-14:]
 
-for i in range(num_threads):
-    Q.put(None)
+print('FAIL\n', _input_offset, _s.decode('ascii'))
 
-#Q.join()
-
-if result is None:
-    print('FAIL\n', _input_offset, _s.decode('ascii'))
-else:
-    print('SUCCESS\n', result[0], result[1])
-
-for t in threads:
-    t.join()
 
 
 
