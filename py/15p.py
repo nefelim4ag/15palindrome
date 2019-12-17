@@ -36,7 +36,3 @@ while True:
     _s = data[-14:]
 
 print('FAIL\n', _input_offset, _s.decode('ascii'))
-
-
-
-

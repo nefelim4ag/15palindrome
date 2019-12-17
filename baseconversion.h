@@ -21,24 +21,10 @@ static inline uint8_t __ctoi(char num) {
 }
 
 static size_t fast_strtol(char *src) {
-        char *ptr = src;
-        size_t len;
         size_t ret = 0;
-        size_t base = 1;
 
-        while (*ptr != '\n' && *ptr != '\0') {
-                ptr++;
-        }
-
-        len = ptr - src;
-
-        for (size_t i = len - 1; i > 0; i--)
-                base *= 10;
-
-        for (size_t i = 0; i < len; i++) {
-                ret += __ctoi(src[i]) * base;
-                base /= 10;
-        }
+        for (int i = 0; src[i] != '\0' && src[i] != '\n'; ++i)
+                ret = ret * 10 + __ctoi(src[i]);
 
         return ret;
 }
