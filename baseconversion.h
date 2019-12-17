@@ -36,7 +36,7 @@ static const char jump_table[36] = {
         'U','V','W','X','Y','Z'
 };
 
-void base_10_to_36(char *dest, char *src) {
+static void base_10_to_36(char *dest, char *src) {
         char *ptr_end = dest;
         size_t num = fast_strtol(src);
 
