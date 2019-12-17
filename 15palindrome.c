@@ -42,47 +42,39 @@ static int get_mmap(char *path, char **ptr, char **ptr_end) {
         return 0;
 }
 
-static int is_palindrome(char *palindrome) {
-        char *start_ptr = palindrome;
-        char *end_ptr = palindrome + TGT_SRCH_SIZE - 1;
+static inline int is_palindrome(char *palindrome, size_t offset) {
+        for (int i = 0; i < TGT_SRCH_SIZE / 2; i++) {
+                size_t last_byte = (offset - i) % TGT_SRCH_SIZE;
+                size_t first_byte = (offset + i + 1) % TGT_SRCH_SIZE;
 
-        while (start_ptr < end_ptr) {
-                if (*start_ptr != *end_ptr)
+                if (palindrome[last_byte] != palindrome[first_byte])
                         return 0;
-                start_ptr++;
-                end_ptr--;
         }
 
         return 1;
 }
 
-static char *append_and_search(char *palindrome, char *num, size_t *counter) {
-        size_t numlen = strlen(num);
+static int append_and_search(char *palindrome, char *rbuffer, size_t *palindrome_offset) {
+        while (*rbuffer != '\0') {
+                palindrome[*palindrome_offset % TGT_SRCH_SIZE] = *rbuffer;
+                rbuffer++;
 
-        for (size_t i = 0; i < BUF_SIZE; i++) // Shift array by numlen
-                palindrome[i] = palindrome[i + numlen];
-
-        memcpy(palindrome + BUF_SIZE, num, numlen);
-
-        while (*(palindrome + BUF_SIZE) != '\0') {
-                *counter = *counter + 1;
-
-                if (is_palindrome(palindrome))
-                        return palindrome;
-
-                palindrome++;
+                if (is_palindrome(palindrome, *palindrome_offset)) {
+                        return 1;
+                }
+                *palindrome_offset = *palindrome_offset + 1;
         }
 
-        return NULL;
+        return 0;
 }
 
 int main(int argc, char **argv) {
         char *ptr = NULL;
         char *ptr_end = NULL;
-        char *success = NULL;
+        int success = 0;
         clock_t begin, end;
-        static char palindrome[BUF_SIZE * 2]; // Extra space for insert whole number
-        size_t palindrome_offset = 0 - BUF_SIZE + 1; // for correct offset
+        static char palindrome[BUF_SIZE];
+        size_t palindrome_offset = 0; // for correct offset
 
         for (size_t i = 0; i < TGT_SRCH_SIZE; i++)
                 palindrome[i] = 48 + i;
@@ -110,9 +102,12 @@ int main(int argc, char **argv) {
         end = clock();
 
         if (success) {
-                success[TGT_SRCH_SIZE] = '\0';
                 printf("\n");
-                printf("Palindrome found %s at byte %lu\n", success, palindrome_offset);
+                printf("Palindrome found ");
+                for (size_t i = 0; i < TGT_SRCH_SIZE; i++) {
+                        printf("%c", palindrome[(palindrome_offset + i + 1) % TGT_SRCH_SIZE]);
+                }
+                printf( " at byte %lu\n", palindrome_offset);
         } else {
                 printf("Can't find palindrome(%i) in %s\n", TGT_SRCH_SIZE, argv[1]);
         }
