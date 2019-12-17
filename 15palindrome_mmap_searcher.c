@@ -26,7 +26,7 @@ static int get_mmap(char *path, char **ptr, char **ptr_end) {
         }
 
         len = (uint64_t) buf.st_size;
-        *ptr = (char*) mmap(0, len, PROT_READ, MAP_POPULATE | MAP_PRIVATE, fd, 0);
+        *ptr = (char*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
         if (ptr == MAP_FAILED) {
                 fprintf(stderr,"Error: Unable to memory map dictionary!\n");
