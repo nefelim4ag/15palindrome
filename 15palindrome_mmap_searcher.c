@@ -52,6 +52,17 @@ static int is_palindrome(char *palindrome) {
         return 1;
 }
 
+inline int is_palindrome_15(char *ptr) {
+        return ptr[0] == ptr[14]
+            && ptr[1] == ptr[13]
+            && ptr[2] == ptr[12]
+            && ptr[3] == ptr[11]
+            && ptr[4] == ptr[10]
+            && ptr[5] == ptr[9]
+            && ptr[6] == ptr[8];
+}
+
+
 int main(int argc, char **argv) {
         int success = 0;
         clock_t begin, end;
@@ -69,7 +80,7 @@ int main(int argc, char **argv) {
         ptr_start = ptr;
         begin = clock();
         while (ptr < ptr_end) {
-                success = is_palindrome(ptr);
+                success = is_palindrome_15(ptr);
                 ptr++;
                 if (success) {
                         printf("\n");
