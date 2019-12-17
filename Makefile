@@ -10,7 +10,7 @@ all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palind
 	gcc -Wall -O3 15palindrome_pipe_searcher.c -o 15palindrome_pipe_searcher
 
 15palindrome_mmap_searcher: 15palindrome_mmap_searcher.c Makefile
-	gcc -Wall -O3 15palindrome_mmap_searcher.c -o 15palindrome_mmap_searcher
+	gcc -Wall -O3 -g 15palindrome_mmap_searcher.c -o 15palindrome_mmap_searcher
 
 15palindrome_amazing_fast: 15palindrome_amazing_fast.c Makefile
 	gcc -Wall -lprimesieve -O3 $@.c -o $@
