@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <byteswap.h>
 
 #define TGT_SRCH_SIZE 15
 
@@ -62,6 +63,14 @@ inline int is_palindrome_15(char *ptr) {
             && ptr[6] == ptr[8];
 }
 
+inline int is_palindrome_15_bswap(char *ptr) {
+        uint64_t* first = (uint64_t*) ptr;
+
+        uint64_t* second = (uint64_t*) (ptr + 7);
+
+        return bswap_64(*first) == *second;
+}
+
 
 int main(int argc, char **argv) {
         int success = 0;
@@ -80,7 +89,7 @@ int main(int argc, char **argv) {
         ptr_start = ptr;
         begin = clock();
         while (ptr < ptr_end) {
-                success = is_palindrome_15(ptr);
+                success = is_palindrome_15_bswap(ptr);
                 ptr++;
                 if (success) {
                         printf("\n");
