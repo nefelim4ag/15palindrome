@@ -3,3 +3,5 @@
 15palindrome_pipe_searcher
 15palindrome_mmap_searcher
 15palindrome_amazing_fast
+
+*.objdump

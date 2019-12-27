@@ -16,3 +16,8 @@ all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palind
 	gcc -Wall -lprimesieve -O3 $@.c -o $@
 
 baseconversion.h: strdlen.h
+
+
+.PHONY: clean
+clean:
+	rm -f 15palindrome_mmap_searcher 15palindrome_pipe_searcher 15palindrome_pipe_10_to_36 15palindrome
