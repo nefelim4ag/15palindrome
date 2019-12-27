@@ -1,0 +1,19 @@
+[package]
+name = "prime36-palindrome15"
+version = "0.1.0"
+authors = ["Aleksei Gutikov <aleksey.gutikov@synesis.ru>"]
+edition = "2018"
+
+[dependencies]
+primesieve-sys = "0.2.3"
+libc = "0.2.66"
+radix_fmt = "1.0.0"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+
+
+
