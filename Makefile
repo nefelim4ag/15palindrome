@@ -1,4 +1,4 @@
-all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palindrome_mmap_searcher 15palindrome_amazing_fast
+all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palindrome_mmap_searcher 15palindrome_amazing_fast 15palindrome_amazing_fast_multithread
 
 15palindrome: 15palindrome.c Makefile baseconversion.h
 	gcc -Wall -O3 15palindrome.c -o 15palindrome
@@ -14,6 +14,9 @@ all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palind
 
 15palindrome_amazing_fast: 15palindrome_amazing_fast.c Makefile
 	gcc -Wall -O3 $@.c -o $@ -lprimesieve
+
+15palindrome_amazing_fast_multithread: 15palindrome_amazing_fast_multithread.c Makefile
+	gcc -Wall -O3 -g $@.c -o $@ -lprimesieve -lpthread 
 
 baseconversion.h: strdlen.h
 
