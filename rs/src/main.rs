@@ -28,7 +28,7 @@ fn find_palindrome(s: &[u8], offset: usize) -> bool
     return false;
 }
 
-fn base36(mut ptr: *mut u8, x: u64) -> *mut u8
+fn base36_r(mut ptr: *mut u8, x: u64) -> *mut u8
 {
     static A: [u8; 36] = [
         48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
@@ -40,12 +40,40 @@ fn base36(mut ptr: *mut u8, x: u64) -> *mut u8
     let z = x / 36;
     let y = (x % 36) as usize;
     if z > 0 {
-        ptr = base36(ptr, z);
+        ptr = base36_r(ptr, z);
     }
     unsafe {
         *ptr = A[y];
     };
     return unsafe { ptr.add(1) };
+}
+
+fn base36(mut dest: *mut u8, mut x: u64) -> *mut u8
+{
+    static A: [u8; 36] = [
+        48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+        65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
+        75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
+        85, 86, 87, 88, 89, 90
+    ];
+
+    let mut buffer: [u8; 16] = unsafe { std::mem::uninitialized() };
+    let mut ptr: *mut u8 = &mut buffer[0];
+    while x > 0 {
+        unsafe {
+            *ptr = A[(x % 36) as usize];
+        };
+        ptr = unsafe { ptr.add(1) };
+        x = x / 36;
+    }
+    while ptr != &mut buffer[0] {
+        ptr = unsafe { ptr.sub(1) };
+        unsafe {
+            *dest = *ptr;
+        }
+        dest = unsafe { dest.add(1) };
+    }
+    return dest;
 }
 
 
@@ -67,7 +95,7 @@ fn main()
         for _ in 1..=1000 {
             for _ in 1..=10000 {
                 let x: u64 = unsafe { primesieve_next_prime(&mut pi) };
-                ptr = base36(ptr, x);
+                ptr = base36_r(ptr, x);
             }
             let s = unsafe { std::slice::from_raw_parts_mut(_start, ptr as usize - _start as usize) };
             if find_palindrome(s, offset) {
