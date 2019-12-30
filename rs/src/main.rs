@@ -4,9 +4,6 @@ use primesieve_sys::primesieve_iterator;
 use primesieve_sys::primesieve_init;
 use primesieve_sys::primesieve_next_prime;
 use primesieve_sys::primesieve_free_iterator;
-use radix_fmt::radix_36;
-//use std::io::{self, Write};
-use std::fmt::Write;
 use std::process;
 
 fn is_palindrome15(ptr: &[u8]) -> bool
@@ -22,7 +19,6 @@ fn is_palindrome15(ptr: &[u8]) -> bool
 
 fn find_palindrome(s: &[u8], offset: usize) -> bool
 {
-    //println!("{} {}", offset, s.len());
     for _i in 0..=(s.len() - 15) {
         if is_palindrome15(&s[_i.._i+15]) {
             println!("{}", _i + offset);
@@ -31,10 +27,30 @@ fn find_palindrome(s: &[u8], offset: usize) -> bool
             }
             return true;
         }
-        //println!("{}", _i);
     }
     return false;
 }
+
+fn base36(mut ptr: *mut u8, x: u64) -> *mut u8
+{
+    static A: [u8; 36] = [
+        48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+        65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
+        75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
+        85, 86, 87, 88, 89, 90
+    ];
+
+    let z = x / 36;
+    let y = (x % 36) as usize;
+    if z > 0 {
+        ptr = base36(ptr, z);
+    }
+    unsafe {
+        *ptr = A[y];
+    };
+    return unsafe { ptr.add(1) };
+}
+
 
 fn main()
 {
@@ -45,27 +61,23 @@ fn main()
     }
 
     let mut offset: usize = 0;
-    let mut s = String::new();
+    let mut _s: [u8; 1024*128] = [0; 1024*128];
+    let _start: *mut u8 = &mut _s[0];
+    let mut ptr: *mut u8 = _start;
     for _ in 1..=1000 {
-        println!("{} ...", offset);
+        //println!("{} ...", offset);
         for _ in 1..=1000 {
             for _ in 1..=10000 {
                 let x: u64 = unsafe { primesieve_next_prime(&mut pi) };
-                
-                write!(&mut s, "{}", radix_36(x));
-                
-                //print!("{}", radix_36(x));
-                //io::stdout().write_all(radix_36(x).to_string().as_bytes());
+                ptr = base36(ptr, x);
             }
-            //println!("{}", s);
-            if find_palindrome(s.as_bytes(), offset) {
+            let s = unsafe { std::slice::from_raw_parts_mut(_start, ptr as usize - _start as usize) };
+            if find_palindrome(s, offset) {
                 process::exit(0);
             }
-            let len = s.len();
-            offset += len - 14;
-            let tail = String::from(&s[len-14..len]);
-            s.replace_range(0..14, tail.as_str());
-            s.truncate(14);
+            offset += s.len() - 14;
+            s.copy_within(s.len()-14..s.len(), 0);
+            ptr = unsafe{ _start.add(14) };
         }
     }
 
