@@ -1,9 +1,6 @@
 
 use core::mem;
-use primesieve_sys::primesieve_iterator;
-use primesieve_sys::primesieve_init;
-use primesieve_sys::primesieve_next_prime;
-use primesieve_sys::primesieve_free_iterator;
+use primesieve_sys::*;
 use std::process;
 
 fn is_palindrome15(ptr: &[u8]) -> bool
@@ -58,6 +55,7 @@ fn main()
 
     unsafe {
         primesieve_init(&mut pi);
+        primesieve_set_sieve_size(64);
     }
 
     let mut offset: usize = 0;

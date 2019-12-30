@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set +x
+
 time python3 ./prime.py | pypy3 base_36.py | pv | pypy3 15p.py
 
 
