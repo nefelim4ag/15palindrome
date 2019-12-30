@@ -36,6 +36,22 @@ static const char jump_table[36] = {
         'U','V','W','X','Y','Z'
 };
 
+static void base_num_to_36(char *dest, size_t num) {
+        char *ptr_end = dest;
+
+        while (num != 0) {
+                int remainder = num % 36;
+                *ptr_end = jump_table[remainder];
+                ptr_end++;
+                num = num / 36;
+        }
+
+        *ptr_end = '\0';
+
+        strrev(dest);
+}
+
+
 static void base_10_to_36(char *dest, char *src) {
         char *ptr_end = dest;
         size_t num = fast_strtol(src);
