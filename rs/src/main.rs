@@ -71,6 +71,7 @@ fn main()
             }
             let s = unsafe { std::slice::from_raw_parts_mut(_start, ptr as usize - _start as usize) };
             if find_palindrome(s, offset) {
+                //while true {}
                 process::exit(0);
             }
             offset += s.len() - 14;
