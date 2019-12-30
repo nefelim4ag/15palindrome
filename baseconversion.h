@@ -51,6 +51,36 @@ static void base_num_to_36(char *dest, size_t num) {
         strrev(dest);
 }
 
+static char* base_num_to_36_x(char *dest, size_t num) {
+        while (num > 0) {
+                *dest++ = jump_table[num % 36];
+                num = num / 36;
+        }
+
+        return dest;
+}
+
+static char* r_base_num_to_36(char *dest, size_t num) {
+        while (num > 0) {
+                *dest-- = jump_table[num % 36];
+                num = num / 36;
+        }
+
+        return dest;
+}
+
+static char* base_num_to_36_r(char *dest, size_t num) {
+        size_t z = num / 36;
+        size_t y = num % 36;
+
+        if (z > 0) {
+                dest = base_num_to_36_r(dest, z);
+        }
+
+        *dest = jump_table[y];
+
+        return dest + 1;
+}
 
 static void base_10_to_36(char *dest, char *src) {
         char *ptr_end = dest;
