@@ -30,6 +30,8 @@
 
 #if ENABLE_SLEEP
 #define SLEEP usleep(1)
+//#define SLEEP {struct timespec tim, tim2; tim.tv_sec=0; tim.tv_nsec=1000; nanosleep(&tim, &tim2);}
+//#define SLEEP {size_t _c = 10000000; while (_c-- > 0) (void)0;}
 #else
 #define SLEEP
 #endif
@@ -48,16 +50,16 @@ static const char jump_table[36] = {
         'U','V','W','X','Y','Z'
 };
 
-/*
-static char* base_num_to_36_r(char *dest, size_t num) {
+
+static char* base36_r(char *dest, size_t num) {
         size_t z = num / 36;
         size_t y = num % 36;
         if (z > 0) {
-                dest = base_num_to_36_r(dest, z);
+                dest = base36_r(dest, z);
         }
         *dest = jump_table[y];
         return dest + 1;
-} */
+}
 
 char* base36(char *dest, size_t num) {
         static char buffer[16];
@@ -106,7 +108,7 @@ void prime_fill_buffer(uint64_t* buffer, size_t size, primesieve_iterator* it)
 char* base36_print_buffer(char* dest, const uint64_t* src, size_t size)
 {
         while(size-- > 0) {
-                dest = base36(dest, *src++);
+                dest = base36_r(dest, *src++);
         }
         return dest;
 }
@@ -115,7 +117,7 @@ int run = 1;
 
 primesieve_iterator it;
 
-#define PRIME_BUFFER_SIZE 1024*1024
+#define PRIME_BUFFER_SIZE 1024*512
 
 uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
 volatile uint64_t* prime_buffer_w = 0;
