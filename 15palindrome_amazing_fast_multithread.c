@@ -86,7 +86,7 @@ int is_palindrome_15_bswap(const char *ptr) {
 }
 
 
-ssize_t search(const char* begin, const char* end) {
+ssize_t search_15_palindrome(const char* begin, const char* end) {
         const char* ptr = begin;
         while (ptr <= end - 15) {
                 if (is_palindrome_15_bswap(ptr)) {
@@ -181,6 +181,8 @@ void* base36_routine(void* arg)
         TRACE("36: ready 1\n");
 
         char* local_base36_buffer_w = base36_buffer[1];
+        char* write_ptr = local_base36_buffer_w;
+        char tail[14] = {0};
 
         while(run) {
                 // save prime read ptr
@@ -189,8 +191,18 @@ void* base36_routine(void* arg)
                 switch_prime_buffer();
                 TRACE("36: switched %p\n", local_prime_buffer_r);
 
+                if (base36_buffer_w != 0) {
+                        // if search already switched base36 write buffer
+                        // restore tail of previous buffer into head of next one
+                        memcpy(write_ptr, tail, 14);
+                        write_ptr += 14;
+                }
                 // do work
-                base36_buffer_r_end = base36_print_buffer(local_base36_buffer_w, local_prime_buffer_r, PRIME_BUFFER_SIZE);
+                base36_buffer_r_end = base36_print_buffer(write_ptr, local_prime_buffer_r, PRIME_BUFFER_SIZE);
+                // store tail of output for future use
+                // notice: double copy, first into temporary buffer then into output buffer
+                //         works faster than one copy after wait for search thread consumed previous batch
+                memcpy(tail, (const char*)base36_buffer_r_end - 14, 14);
                 TRACE("36: done\n");
 
                 // publish work result for search thread
@@ -206,6 +218,7 @@ void* base36_routine(void* arg)
                         SLEEP;
                 }
                 local_base36_buffer_w = (char*) base36_buffer_w;
+                write_ptr = local_base36_buffer_w;
                 TRACE("36: consumed %p\n", local_base36_buffer_w);
 
                 // wait for prime buffer ready
@@ -256,7 +269,7 @@ void* search_routine(void* arg)
                 TRACE("search: switched %p\n", local_base36_buffer_r);
 
                 // do work
-                ssize_t offset = search(local_base36_buffer_r, local_base36_buffer_r_end);
+                ssize_t offset = search_15_palindrome(local_base36_buffer_r, local_base36_buffer_r_end);
                 if (offset >= 0) {
                         //printf("SUCCESS\n");
                         run = 0;
@@ -265,7 +278,7 @@ void* search_routine(void* arg)
                         palindrome = local_base36_buffer_r + offset;
                         break;
                 }
-                total_offset += local_base36_buffer_r_end - local_base36_buffer_r;
+                total_offset += local_base36_buffer_r_end - local_base36_buffer_r - 14;
                 TRACE("search: done %lu\n", total_offset);
 
                 if (total_offset > 1000*1000*1000) {
@@ -273,11 +286,6 @@ void* search_routine(void* arg)
                         run = 0;
                         break;
                 }
-
-                //TODO
-                //memcpy(base36_buffer, ptr-14, 14);
-                //ptr = base36_buffer + 14;
-
 
                 // wait for base36 buffer ready
                 while(base36_buffer_r == local_base36_buffer_r) {
