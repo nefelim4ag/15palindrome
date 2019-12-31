@@ -11,12 +11,12 @@
 #include <primesieve.h>
 #include <pthread.h>
 
-#define DEBUG 0
+#define ENABLE_TRACE 0
 #define ENABLE_SW_MEMORY_BARRIER 1
-#define ENABLE_SLEEP 1
+#define ENABLE_SLEEP 0
 #define ENABLE_HW_MEMORY_BARRIER 0
 
-#if DEBUG
+#if ENABLE_TRACE
 #define TRACE(...) printf(__VA_ARGS__)
 #else
 #define TRACE(...) 
@@ -43,20 +43,28 @@
 #endif
 
 
-static const char jump_table[36] = {
+const char jump_table[36] = {
         '0','1','2','3','4','5','6','7','8','9',
         'A','B','C','D','E','F','G','H','I','J',
         'K','L','M','N','O','P','Q','R','S','T',
         'U','V','W','X','Y','Z'
 };
 
+static inline uint64_t fastmod36(uint64_t n)
+{
+        const uint64_t c = UINT64_C(0xFFFFFFFFFFFFFFFF) / 36 + 1;
+        register uint64_t lowbits = c * n;
+        return ((__uint128_t)lowbits * 36) >> 64; 
+}
 
-static char* base36_r(char *dest, size_t num) {
-        size_t z = num / 36;
-        size_t y = num % 36;
+char* base36_r(char *dest, uint64_t num) {
+        uint64_t y = num % 36;
+        //uint64_t y = fastmod36(num);
+        uint64_t z = num / 36;
         if (z > 0) {
                 dest = base36_r(dest, z);
         }
+        // NOT tail-recursive, but faster than base36 if apply to batch
         *dest = jump_table[y];
         return dest + 1;
 }
@@ -113,18 +121,19 @@ char* base36_print_buffer(char* dest, const uint64_t* src, size_t size)
         return dest;
 }
 
-int run = 1;
+__attribute__((aligned(64))) int run = 1;
 
 primesieve_iterator it;
 
 #define PRIME_BUFFER_SIZE 1024*512
 
-uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
-volatile uint64_t* prime_buffer_w = 0;
-volatile const uint64_t* prime_buffer_r = 0;
+__attribute__((aligned(64))) uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
+__attribute__((aligned(64))) volatile uint64_t* prime_buffer_w = 0;
+__attribute__((aligned(64))) volatile const uint64_t* prime_buffer_r = 0;
 
 void* prime_gen_routine(void* arg)
 {
+        size_t buffer_count = 0;
         uint64_t* local_prime_buffer_w = prime_buffer[1];
 
         while(run) {
@@ -137,6 +146,7 @@ void* prime_gen_routine(void* arg)
                 SW_MEM_BARRIER;
                 HW_MEM_BARRIER;
                 TRACE("gen: published %p\n", prime_buffer_r);
+                buffer_count++;
 
                 // wait for base36 thread consumed previous batch
                 while(prime_buffer_w == local_prime_buffer_w || prime_buffer_w == 0) {
@@ -148,7 +158,7 @@ void* prime_gen_routine(void* arg)
                 TRACE("gen: consumed %p\n", local_prime_buffer_w);
         }
 
-        TRACE("gen: return\n");
+        printf("gen: published %lu buffers, %lu bytes\n", buffer_count, buffer_count*PRIME_BUFFER_SIZE*sizeof(*prime_buffer_w));
         return 0;
 }
 
@@ -163,13 +173,15 @@ void switch_prime_buffer() {
 }
 
 // sizeof(uint64_t) * 256 / 36 < 64
-char base36_buffer[2][PRIME_BUFFER_SIZE * 64]; 
-volatile char* base36_buffer_w = 0;
-volatile const char* base36_buffer_r = 0;
-volatile const char* base36_buffer_r_end = 0;
+__attribute__((aligned(64))) char base36_buffer[2][PRIME_BUFFER_SIZE * 64]; 
+__attribute__((aligned(64))) volatile char* base36_buffer_w = 0;
+__attribute__((aligned(64))) volatile const char* base36_buffer_r = 0;
+__attribute__((aligned(64))) volatile const char* base36_buffer_r_end = 0;
 
 void* base36_routine(void* arg)
 {
+        size_t byte_count = 0;
+
         TRACE("36: started\n");
         // wait for prime buffer ready first time
         while (prime_buffer_r == 0) {
@@ -210,6 +222,7 @@ void* base36_routine(void* arg)
                 SW_MEM_BARRIER;
                 HW_MEM_BARRIER;
                 TRACE("36: published %p\n", base36_buffer_r);
+                byte_count += base36_buffer_r_end - write_ptr;
 
                 // wait for search thread consumed previous batch
                 while (base36_buffer_w == local_base36_buffer_w || base36_buffer_w == 0) {
@@ -230,7 +243,7 @@ void* base36_routine(void* arg)
                 TRACE("36: ready\n");
         }
 
-        TRACE("36: return\n");
+        printf("36: published %lu bytes\n", byte_count);
         return 0;
 }
 
