@@ -28,7 +28,7 @@
 #define SW_MEM_BARRIER
 #endif
 
-void spin_sleep()
+inline void spin_sleep()
 {
         int _c = 1000;
         while (_c-- > 0) {
@@ -139,9 +139,14 @@ __attribute__((aligned(64))) uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
 __attribute__((aligned(64))) volatile uint64_t* prime_buffer_w = 0;
 __attribute__((aligned(64))) volatile const uint64_t* prime_buffer_r = 0;
 
+//TODO: notify threads via conditional variables
+//TODO: more smaller buffers and lockless queue
+//TODO: synchronize with pthread_barrier_wait
+
 void* prime_gen_routine(void* arg)
 {
         size_t buffer_count = 0;
+        size_t sleep_count = 0;
         uint64_t* local_prime_buffer_w = prime_buffer[1];
 
         while(run) {
@@ -161,12 +166,14 @@ void* prime_gen_routine(void* arg)
                         SW_MEM_BARRIER;
                         if (!run) { break; }
                         SLEEP;
+                        sleep_count++;
                 }
                 local_prime_buffer_w = (uint64_t*) prime_buffer_w;
                 TRACE("gen: consumed %p\n", local_prime_buffer_w);
         }
 
-        printf("gen: published %lu buffers, %lu bytes\n", buffer_count, buffer_count*PRIME_BUFFER_SIZE*sizeof(*prime_buffer_w));
+        printf("gen: published %lu buffers, %lu bytes, %lu sleep calls\n",
+                buffer_count, buffer_count*PRIME_BUFFER_SIZE*sizeof(*prime_buffer_w), sleep_count);
         return 0;
 }
 
@@ -189,6 +196,7 @@ __attribute__((aligned(64))) volatile const char* base36_buffer_r_end = 0;
 void* base36_routine(void* arg)
 {
         size_t byte_count = 0;
+        size_t sleep_count = 0;
 
         TRACE("36: started\n");
         // wait for prime buffer ready first time
@@ -197,6 +205,7 @@ void* base36_routine(void* arg)
                 //TRACE("36: prime_buffer_r=%p\n", prime_buffer_r);
                 if (!run) { break; }
                 SLEEP;
+                sleep_count++;
         }
         TRACE("36: ready 1\n");
 
@@ -237,6 +246,7 @@ void* base36_routine(void* arg)
                         SW_MEM_BARRIER;
                         if (!run) { break; }
                         SLEEP;
+                        sleep_count++;
                 }
                 local_base36_buffer_w = (char*) base36_buffer_w;
                 write_ptr = local_base36_buffer_w;
@@ -247,11 +257,12 @@ void* base36_routine(void* arg)
                         SW_MEM_BARRIER;
                         if (!run) { break; }
                         SLEEP;
+                        sleep_count++;
                 }
                 TRACE("36: ready\n");
         }
 
-        printf("36: published %lu bytes\n", byte_count);
+        printf("36: published %lu bytes, %lu sleep calls\n", byte_count, sleep_count);
         return 0;
 }
 
@@ -272,6 +283,8 @@ size_t total_offset = 0;
 
 void* search_routine(void* arg)
 {
+        size_t sleep_count = 0;
+
         TRACE("search: started\n");
         // wait for base36 buffer ready first time
         while (base36_buffer_r == 0) {
@@ -313,11 +326,12 @@ void* search_routine(void* arg)
                         SW_MEM_BARRIER;
                         if (!run) { break; }
                         SLEEP;
+                        sleep_count++;
                 }
                 TRACE("search: ready\n");
         }
 
-        TRACE("search: return\n");
+        printf("search: %lu sleep calls\n", sleep_count);
         return 0;
 }
 
