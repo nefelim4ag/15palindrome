@@ -1,26 +1,20 @@
-all: 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palindrome_mmap_searcher 15palindrome_amazing_fast 15palindrome_amazing_fast_multithread
 
-15palindrome: 15palindrome.c Makefile baseconversion.h
-	gcc -Wall -O3 15palindrome.c -o 15palindrome
+APPS = 15palindrome 15palindrome_pipe_10_to_36 15palindrome_pipe_searcher 15palindrome_mmap_searcher 15palindrome_amazing_fast 15palindrome_amazing_fast_multithread
 
-15palindrome_pipe_10_to_36: 15palindrome_pipe_10_to_36.c Makefile baseconversion.h stdin.h
-	gcc -Wall -O3 15palindrome_pipe_10_to_36.c -o 15palindrome_pipe_10_to_36
+CC = gcc
+CFLAGS = -Wall -O3
+LDFLAGS = -lprimesieve -lpthread 
 
-15palindrome_pipe_searcher: 15palindrome_pipe_searcher.c Makefile strdlen.h stdin.h
-	gcc -Wall -O3 15palindrome_pipe_searcher.c -o 15palindrome_pipe_searcher
+DEPS = Makefile baseconversion.h stdin.h
 
-15palindrome_mmap_searcher: 15palindrome_mmap_searcher.c Makefile
-	gcc -Wall -O3 -g 15palindrome_mmap_searcher.c -o 15palindrome_mmap_searcher
+all: ${APPS}
 
-15palindrome_amazing_fast: 15palindrome_amazing_fast.c Makefile
-	gcc -Wall -O3 $@.c -o $@ -lprimesieve
-
-15palindrome_amazing_fast_multithread: 15palindrome_amazing_fast_multithread.c Makefile
-	gcc -Wall -O3 -g $@.c -o $@ -lprimesieve -lpthread 
+${APPS}: %: %.c ${DEPS}
+	${CC} ${CFLAGS} $@.c -o $@ ${LDFLAGS}
 
 baseconversion.h: strdlen.h
 
 
 .PHONY: clean
 clean:
-	rm -f 15palindrome_mmap_searcher 15palindrome_pipe_searcher 15palindrome_pipe_10_to_36 15palindrome
+	rm -f ${APPS}
