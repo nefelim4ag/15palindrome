@@ -13,7 +13,7 @@
 
 #define ENABLE_TRACE 0
 #define ENABLE_SW_MEMORY_BARRIER 1
-#define ENABLE_SLEEP 0
+#define ENABLE_SLEEP 1
 #define ENABLE_HW_MEMORY_BARRIER 0
 
 #if ENABLE_TRACE
@@ -28,10 +28,18 @@
 #define SW_MEM_BARRIER
 #endif
 
+void spin_sleep()
+{
+        int _c = 1000;
+        while (_c-- > 0) {
+                (void)0;
+        }
+}
+
 #if ENABLE_SLEEP
-#define SLEEP usleep(1)
+//#define SLEEP usleep(1)
 //#define SLEEP {struct timespec tim, tim2; tim.tv_sec=0; tim.tv_nsec=1000; nanosleep(&tim, &tim2);}
-//#define SLEEP {size_t _c = 10000000; while (_c-- > 0) (void)0;}
+#define SLEEP spin_sleep()
 #else
 #define SLEEP
 #endif
