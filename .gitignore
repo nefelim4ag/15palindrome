@@ -7,3 +7,5 @@
 *.objdump
 15palindrome_amazing_fast_multithread
 callgrind.out.*
+*.S
+15palindrome_amazing_fast_multithread_sync
