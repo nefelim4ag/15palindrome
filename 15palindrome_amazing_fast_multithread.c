@@ -4,16 +4,15 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <byteswap.h>
-#include <primesieve.h>
 #include <pthread.h>
+
+#include "15palindrome.h"
 
 #define ENABLE_TRACE 0
 #define ENABLE_SW_MEMORY_BARRIER 1
-#define ENABLE_SLEEP 1
+#define ENABLE_SLEEP 0
 #define ENABLE_HW_MEMORY_BARRIER 0
 
 #if ENABLE_TRACE
@@ -50,98 +49,15 @@ inline void spin_sleep()
 #define HW_MEM_BARRIER
 #endif
 
-
-const char jump_table[36] = {
-        '0','1','2','3','4','5','6','7','8','9',
-        'A','B','C','D','E','F','G','H','I','J',
-        'K','L','M','N','O','P','Q','R','S','T',
-        'U','V','W','X','Y','Z'
-};
-
-static inline uint64_t fastmod36(uint64_t n)
-{
-        const uint64_t c = UINT64_C(0xFFFFFFFFFFFFFFFF) / 36 + 1;
-        register uint64_t lowbits = c * n;
-        return ((__uint128_t)lowbits * 36) >> 64; 
-}
-
-char* base36_r(char *dest, uint64_t num) {
-        uint64_t y = num % 36;
-        //uint64_t y = fastmod36(num);
-        uint64_t z = num / 36;
-        if (z > 0) {
-                dest = base36_r(dest, z);
-        }
-        // NOT tail-recursive, but faster than base36 if apply to batch
-        *dest = jump_table[y];
-        return dest + 1;
-}
-
-char* base36(char *dest, size_t num) {
-        static char buffer[16];
-        char* ptr = buffer;
-        while (num > 0) {
-                *ptr = jump_table[num % 36];
-                ptr++;
-                num = num / 36;
-        }
-        while (ptr > buffer) {
-                ptr--;
-                *dest = *ptr;
-                dest++;
-        }
-        return dest;
-}
-
-int is_palindrome_15_bswap(const char *ptr) {
-        uint64_t* first = (uint64_t*) ptr;
-
-        uint64_t* second = (uint64_t*) (ptr + 7);
-
-        return bswap_64(*first) == *second;
-}
-
-
-ssize_t search_15_palindrome(const char* begin, const char* end) {
-        const char* ptr = begin;
-        while (ptr <= end - 15) {
-                if (is_palindrome_15_bswap(ptr)) {
-                        return ptr - begin;
-                }
-                ptr++;
-        }
-        return -1;
-}
-
-
-void prime_fill_buffer(uint64_t* buffer, size_t size, primesieve_iterator* it)
-{
-        while (size-- > 0) {
-                *buffer++ = primesieve_next_prime(it);
-        }
-}
-
-char* base36_print_buffer(char* dest, const uint64_t* src, size_t size)
-{
-        while(size-- > 0) {
-                dest = base36_r(dest, *src++);
-        }
-        return dest;
-}
-
-__attribute__((aligned(64))) int run = 1;
+__attribute__((aligned(64))) volatile int run = 1;
 
 primesieve_iterator it;
 
 #define PRIME_BUFFER_SIZE 1024*512
 
-__attribute__((aligned(64))) uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
+__attribute__((aligned(4096))) uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
 __attribute__((aligned(64))) volatile uint64_t* prime_buffer_w = 0;
 __attribute__((aligned(64))) volatile const uint64_t* prime_buffer_r = 0;
-
-//TODO: notify threads via conditional variables
-//TODO: more smaller buffers and lockless queue
-//TODO: synchronize with pthread_barrier_wait
 
 void* prime_gen_routine(void* arg)
 {
@@ -172,7 +88,7 @@ void* prime_gen_routine(void* arg)
                 TRACE("gen: consumed %p\n", local_prime_buffer_w);
         }
 
-        printf("gen: published %lu buffers, %lu bytes, %lu sleep calls\n",
+        printf("gen: written %lu buffers, %lu bytes, %lu sleep calls\n",
                 buffer_count, buffer_count*PRIME_BUFFER_SIZE*sizeof(*prime_buffer_w), sleep_count);
         return 0;
 }
@@ -188,7 +104,7 @@ void switch_prime_buffer() {
 }
 
 // sizeof(uint64_t) * 256 / 36 < 64
-__attribute__((aligned(64))) char base36_buffer[2][PRIME_BUFFER_SIZE * 64]; 
+__attribute__((aligned(4096))) char base36_buffer[2][PRIME_BUFFER_SIZE * 64]; 
 __attribute__((aligned(64))) volatile char* base36_buffer_w = 0;
 __attribute__((aligned(64))) volatile const char* base36_buffer_r = 0;
 __attribute__((aligned(64))) volatile const char* base36_buffer_r_end = 0;
@@ -262,7 +178,7 @@ void* base36_routine(void* arg)
                 TRACE("36: ready\n");
         }
 
-        printf("36: published %lu bytes, %lu sleep calls\n", byte_count, sleep_count);
+        printf("36: written %lu bytes, %lu sleep calls\n", byte_count, sleep_count);
         return 0;
 }
 
@@ -291,6 +207,8 @@ void* search_routine(void* arg)
                 SW_MEM_BARRIER;
                 //TRACE("search: base36_buffer_r=%p\n", base36_buffer_r);
                 if (!run) { break; }
+                SLEEP;
+                sleep_count++;
         }
         TRACE("search: ready 1\n");
 
@@ -345,10 +263,26 @@ int main(int argc, char **argv) {
 
         primesieve_init(&it);
 
+        pthread_t this_thread = pthread_self();
+        cpu_set_t this_cpuset;
+        CPU_ZERO(&this_cpuset);
+        CPU_SET(0, &this_cpuset);
+        //pthread_setaffinity_np(this_thread, sizeof(this_cpuset), &this_cpuset);
+
         begin = clock();
 
         pthread_create(&gen_thread, NULL, &prime_gen_routine, NULL);
+        cpu_set_t gen_cpuset;
+        CPU_ZERO(&gen_cpuset);
+        CPU_SET(1, &gen_cpuset);
+        //pthread_setaffinity_np(gen_thread, sizeof(gen_cpuset), &gen_cpuset);
+
         pthread_create(&base36_thread, NULL, &base36_routine, NULL);
+        cpu_set_t base36_cpuset;
+        CPU_ZERO(&base36_cpuset);
+        CPU_SET(3, &base36_cpuset);
+        //pthread_setaffinity_np(base36_thread, sizeof(base36_thread), &base36_cpuset);
+
 
         search_routine(0);
 
