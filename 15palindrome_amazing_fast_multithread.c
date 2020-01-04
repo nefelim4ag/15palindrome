@@ -59,6 +59,8 @@ __attribute__((aligned(4096))) uint64_t prime_buffer[2][PRIME_BUFFER_SIZE];
 __attribute__((aligned(64))) volatile uint64_t* prime_buffer_w = 0;
 __attribute__((aligned(64))) volatile const uint64_t* prime_buffer_r = 0;
 
+//TODO: Use atomic operations for variables shared between threads
+
 void* prime_gen_routine(void* arg)
 {
         size_t buffer_count = 0;
@@ -267,7 +269,7 @@ int main(int argc, char **argv) {
         cpu_set_t this_cpuset;
         CPU_ZERO(&this_cpuset);
         CPU_SET(0, &this_cpuset);
-        //pthread_setaffinity_np(this_thread, sizeof(this_cpuset), &this_cpuset);
+        pthread_setaffinity_np(this_thread, sizeof(this_cpuset), &this_cpuset);
 
         begin = clock();
 
@@ -275,13 +277,13 @@ int main(int argc, char **argv) {
         cpu_set_t gen_cpuset;
         CPU_ZERO(&gen_cpuset);
         CPU_SET(1, &gen_cpuset);
-        //pthread_setaffinity_np(gen_thread, sizeof(gen_cpuset), &gen_cpuset);
+        pthread_setaffinity_np(gen_thread, sizeof(gen_cpuset), &gen_cpuset);
 
         pthread_create(&base36_thread, NULL, &base36_routine, NULL);
         cpu_set_t base36_cpuset;
         CPU_ZERO(&base36_cpuset);
-        CPU_SET(3, &base36_cpuset);
-        //pthread_setaffinity_np(base36_thread, sizeof(base36_thread), &base36_cpuset);
+        CPU_SET(2, &base36_cpuset);
+        pthread_setaffinity_np(base36_thread, sizeof(base36_thread), &base36_cpuset);
 
 
         search_routine(0);
